@@ -221,3 +221,5 @@ cython_debug/
 
 # Static files collected by collectstatic
 staticfiles/
+
+/resources
