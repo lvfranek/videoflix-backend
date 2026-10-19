@@ -1,5 +1,6 @@
+import email.policy
 from contextlib import suppress
-from email.message import MIMEPart
+from email.utils import make_msgid, parseaddr
 from pathlib import Path
 from urllib.parse import urlencode
 
@@ -9,10 +10,10 @@ from django.contrib.auth.tokens import (
     PasswordResetTokenGenerator,
     default_token_generator,
 )
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes, force_str
-from django.core.exceptions import ObjectDoesNotExist
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.exceptions import TokenError
@@ -191,37 +192,51 @@ def build_frontend_auth_link(page, user, token):
     return f'{settings.FRONTEND_URL}/pages/auth/{page}?{query}'
 
 
-def build_logo_attachment():
+class LogoEmail(EmailMultiAlternatives):
     """
-    Return the Videoflix logo as inline image, referenced in templates
-    via its content id.
+    HTML email with the Videoflix logo embedded as a related image.
+
+    A related image belongs to the HTML part, so mail clients show it
+    only where the template references it, not as an extra attachment.
     """
-    logo = MIMEPart()
-    logo.set_content(
-        EMAIL_LOGO_PATH.read_bytes(),
-        maintype='image',
-        subtype='png',
-        disposition='inline',
-        cid=f'<{EMAIL_LOGO_CID}>',
-    )
-    return logo
+
+    def message(self, *, policy=email.policy.default):
+        """Build the MIME message and add the logo next to the HTML."""
+        message = super().message(policy=policy)
+        html_part = message.get_body(preferencelist=('html',))
+        html_part.add_related(
+            EMAIL_LOGO_PATH.read_bytes(),
+            'image',
+            'png',
+            cid=f'<{EMAIL_LOGO_CID}>',
+            disposition='inline',
+        )
+        return message
+
+
+def build_message_id():
+    """Create a Message-ID with the domain of the sender address."""
+    sender_domain = parseaddr(settings.DEFAULT_FROM_EMAIL)[1].partition('@')[2]
+    return make_msgid(domain=sender_domain or None)
+
+
+def render_email_bodies(template_name, context):
+    """Render the plain-text and HTML version of an email template."""
+    template_path = f'{EMAIL_TEMPLATE_DIR}/{template_name}'
+    context = {**context, 'logo_cid': EMAIL_LOGO_CID}
+    text_body = render_to_string(f'{template_path}.txt', context)
+    html_body = render_to_string(f'{template_path}.html', context)
+    return text_body, html_body
 
 
 def send_templated_email(subject, template_name, context, recipient):
-    """
-    Render the text and HTML version of an email template and send both
-    with the inline logo.
-    """
-    context = {**context, 'logo_cid': EMAIL_LOGO_CID}
-    text_body = render_to_string(
-        f'{EMAIL_TEMPLATE_DIR}/{template_name}.txt', context
+    """Send an email template as text and HTML with the logo."""
+    text_body, html_body = render_email_bodies(template_name, context)
+    email_message = LogoEmail(
+        subject=subject,
+        body=text_body,
+        to=[recipient],
+        headers={'Message-ID': build_message_id()},
     )
-    html_body = render_to_string(
-        f'{EMAIL_TEMPLATE_DIR}/{template_name}.html', context
-    )
-    email = EmailMultiAlternatives(
-        subject=subject, body=text_body, to=[recipient]
-    )
-    email.attach_alternative(html_body, 'text/html')
-    email.attach(build_logo_attachment())
-    email.send()
+    email_message.attach_alternative(html_body, 'text/html')
+    email_message.send()
