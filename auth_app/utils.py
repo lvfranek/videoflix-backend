@@ -3,11 +3,12 @@ from pathlib import Path
 from urllib.parse import urlencode
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
-from django.utils.encoding import force_bytes
-from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes, force_str
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 
 EMAIL_TEMPLATE_DIR = 'auth_app/emails'
 EMAIL_LOGO_CID = 'videoflix-logo'
@@ -32,6 +33,26 @@ account_activation_token = AccountActivationTokenGenerator()
 def encode_uid(user):
     """Return the user's primary key as URL-safe base64 string."""
     return urlsafe_base64_encode(force_bytes(user.pk))
+
+
+def get_user_from_uid(uidb64):
+    """Return the user encoded in a URL-safe base64 uid, or None if it is invalid."""
+    User = get_user_model()
+    try:
+        user_id = force_str(urlsafe_base64_decode(uidb64))
+        return User.objects.get(pk=user_id)
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        return None
+
+
+def activate_user(uidb64, token):
+    """Activate the account behind uid and token; return whether it succeeded."""
+    user = get_user_from_uid(uidb64)
+    if user is None or not account_activation_token.check_token(user, token):
+        return False
+    user.is_active = True
+    user.save(update_fields=['is_active'])
+    return True
 
 
 def build_frontend_auth_link(page, user, token):
