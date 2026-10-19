@@ -1,0 +1,24 @@
+Copyright (c) 2026 Franek K.
+
+All rights reserved.
+
+The source code in this repository was written by Franek K. as part of the
+backend course of the Developer Akademie. No license is granted to copy,
+modify, distribute or otherwise use it without prior written permission.
+
+
+THIRD-PARTY MATERIAL
+
+The following parts are not covered by the notice above. They were provided
+by Developer Akademie GmbH as course material and remain their property:
+
+- The Docker setup: backend.Dockerfile, backend.entrypoint.sh,
+  docker-compose.yml, and the files .dockerignore and .env.template, which are
+  based on the course material and were extended for this project.
+  Source: https://github.com/Developer-Akademie-Backendkurs/material.videoflix-docker-files
+- The Videoflix logo (auth_app/static/auth_app/images/email_logo.png, rendered
+  from the logo of the Videoflix frontend) and the email designs that the
+  email templates in auth_app/templates/ are based on.
+- The Videoflix frontend, which is not part of this repository and is shown
+  in docs/videoflix-dashboard.jpg. The videos visible in that screenshot are
+  free stock footage.

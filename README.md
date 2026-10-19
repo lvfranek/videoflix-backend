@@ -229,4 +229,4 @@ docker compose exec web python manage.py test
 
 ## License
 
-All rights reserved. The Videoflix frontend, the email designs and the Docker setup are provided by the Developer Akademie.
+All rights reserved — see [LICENSE](LICENSE). The Docker setup, the Videoflix logo, the email designs and the frontend shown in the screenshot are course material of Developer Akademie GmbH and remain their property.
