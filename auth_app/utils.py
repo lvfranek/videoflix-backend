@@ -1,9 +1,17 @@
+from email.message import MIMEPart
+from pathlib import Path
 from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
+
+EMAIL_TEMPLATE_DIR = 'auth_app/emails'
+EMAIL_LOGO_CID = 'videoflix-logo'
+EMAIL_LOGO_PATH = Path(__file__).resolve().parent / 'static' / 'auth_app' / 'images' / 'email_logo.png'
 
 
 class AccountActivationTokenGenerator(PasswordResetTokenGenerator):
@@ -30,3 +38,27 @@ def build_frontend_auth_link(page, user, token):
     """Build a link to a frontend auth page that carries uid and token as query parameters."""
     query = urlencode({'uid': encode_uid(user), 'token': token})
     return f'{settings.FRONTEND_URL}/pages/auth/{page}?{query}'
+
+
+def build_logo_attachment():
+    """Return the Videoflix logo as inline image, referenced in templates via its content id."""
+    logo = MIMEPart()
+    logo.set_content(
+        EMAIL_LOGO_PATH.read_bytes(),
+        maintype='image',
+        subtype='png',
+        disposition='inline',
+        cid=f'<{EMAIL_LOGO_CID}>',
+    )
+    return logo
+
+
+def send_templated_email(subject, template_name, context, recipient):
+    """Render the text and HTML version of an email template and send both with the inline logo."""
+    context = {**context, 'logo_cid': EMAIL_LOGO_CID}
+    text_body = render_to_string(f'{EMAIL_TEMPLATE_DIR}/{template_name}.txt', context)
+    html_body = render_to_string(f'{EMAIL_TEMPLATE_DIR}/{template_name}.html', context)
+    email = EmailMultiAlternatives(subject=subject, body=text_body, to=[recipient])
+    email.attach_alternative(html_body, 'text/html')
+    email.attach(build_logo_attachment())
+    email.send()
