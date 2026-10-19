@@ -55,3 +55,12 @@ class LoginSerializer(serializers.Serializer):
             raise serializers.ValidationError('Please activate your account first.')
         attrs['user'] = user
         return attrs
+
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    """Validates the email address a password reset link should be sent to."""
+
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        return value.strip().lower()

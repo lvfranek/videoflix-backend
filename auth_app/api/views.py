@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from auth_app.tasks import queue_activation_email
+from auth_app.tasks import queue_activation_email, queue_password_reset_email
 from auth_app.utils import (
     REFRESH_TOKEN_COOKIE,
     account_activation_token,
@@ -17,7 +17,7 @@ from auth_app.utils import (
     set_auth_cookies,
 )
 
-from .serializers import LoginSerializer, RegistrationSerializer
+from .serializers import LoginSerializer, PasswordResetRequestSerializer, RegistrationSerializer
 
 GENERIC_INPUT_ERROR = 'Please check your input and try again.'
 LOGOUT_MESSAGE = 'Logout successful! All tokens will be deleted. Refresh token is now invalid.'
@@ -103,3 +103,16 @@ class LogoutView(APIView):
             response = Response({'detail': LOGOUT_MESSAGE}, status=status.HTTP_200_OK)
         delete_auth_cookies(response)
         return response
+
+
+class PasswordResetRequestView(APIView):
+    """Send a password reset email without revealing whether the account exists."""
+
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        queue_password_reset_email(serializer.validated_data['email'])
+        return Response({'detail': 'An email has been sent to reset your password.'}, status=status.HTTP_200_OK)

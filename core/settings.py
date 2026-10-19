@@ -136,6 +136,9 @@ RQ_QUEUES = {
 
 AUTH_USER_MODEL = 'auth_app.User'
 
+# Activation and password reset links are valid for 24 hours (as stated in the emails).
+PASSWORD_RESET_TIMEOUT = 60 * 60 * 24
+
 
 # Django REST framework & JWT
 # https://django-rest-framework-simplejwt.readthedocs.io/en/latest/settings.html
