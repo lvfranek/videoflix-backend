@@ -6,9 +6,15 @@ from video_app.utils import HLS_RESOLUTIONS, get_hls_directory
 
 
 class HlsFileMixin:
-    """Locate HLS files of ready videos; everything else results in a 404."""
+    """
+    Locate HLS files of ready videos; everything else results in a 404.
+    """
 
     def get_hls_file(self, movie_id, resolution, file_name):
+        """
+        Return the path of an HLS file of a ready video or raise
+        Http404.
+        """
         if resolution not in HLS_RESOLUTIONS:
             raise Http404('Unknown resolution.')
         get_object_or_404(Video, pk=movie_id, status=Video.Status.READY)

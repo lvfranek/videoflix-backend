@@ -14,35 +14,50 @@ from auth_app.tests.helpers import create_user
 from video_app.models import Video
 from video_app.utils import get_hls_directory
 
-IN_MEMORY_CACHE = {'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}}
+IN_MEMORY_CACHE = {
+    'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}
+}
 
 
 class VideoTestCase(APITestCase):
-    """Runs every test with a temporary MEDIA_ROOT and an in-memory cache instead of Redis."""
+    """
+    Runs every test with a temporary MEDIA_ROOT and an in-memory cache
+    instead of Redis.
+    """
 
     def setUp(self):
         self.media_root = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.media_root, ignore_errors=True)
-        settings_override = override_settings(MEDIA_ROOT=self.media_root, CACHES=IN_MEMORY_CACHE)
+        settings_override = override_settings(
+            MEDIA_ROOT=self.media_root, CACHES=IN_MEMORY_CACHE
+        )
         settings_override.enable()
         self.addCleanup(settings_override.disable)
 
 
 def create_video(title='Test Video', status=Video.Status.READY, **fields):
-    """Create a video with a small dummy upload; no background job is started."""
+    """
+    Create a video with a small dummy upload; no background job is
+    started.
+    """
     with patch('video_app.tasks.django_rq.enqueue'):
         return Video.objects.create(
             title=title,
             description='A test video.',
             category=Video.Category.DRAMA,
-            video_file=SimpleUploadedFile('clip.mp4', b'not really a video', content_type='video/mp4'),
+            video_file=SimpleUploadedFile(
+                'clip.mp4', b'not really a video', content_type='video/mp4'
+            ),
             status=status,
             **fields,
         )
 
 
 def create_hls_files(video, resolutions=('480p', '720p', '1080p'), segments=2):
-    """Write a fake HLS playlist and segments for a video into the media folder."""
+    """
+    Write a fake HLS playlist and segments for a video into the media
+    folder.
+    """
     for resolution in resolutions:
         folder = get_hls_directory(video.pk, resolution)
         folder.mkdir(parents=True)
@@ -52,6 +67,9 @@ def create_hls_files(video, resolutions=('480p', '720p', '1080p'), segments=2):
 
 
 def authenticate(client):
-    """Give the test client a valid access token cookie, like after a login."""
+    """
+    Give the test client a valid access token cookie, like after a
+    login.
+    """
     user = create_user(password=None)
     client.cookies['access_token'] = str(AccessToken.for_user(user))

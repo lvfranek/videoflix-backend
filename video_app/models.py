@@ -43,9 +43,16 @@ class Video(models.Model):
         max_length=255,
         blank=True,
         validators=[FileExtensionValidator(THUMBNAIL_EXTENSIONS)],
-        help_text='Leave empty to generate a thumbnail from the video automatically.',
+        help_text=(
+            'Leave empty to generate a thumbnail from the video automatically.'
+        ),
     )
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING, editable=False)
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+        editable=False,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -55,7 +62,10 @@ class Video(models.Model):
         return self.title
 
     def set_status(self, status):
-        """Store a new processing status without triggering save signals again."""
+        """
+        Store a new processing status without triggering save signals
+        again.
+        """
         self.status = status
         Video.objects.filter(pk=self.pk).update(status=status)
         invalidate_video_list_cache()

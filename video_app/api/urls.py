@@ -14,7 +14,8 @@ urlpatterns = [
         HlsSegmentView.as_view(),
         name='video-segment',
     ),
-    # hls.js requests segments exactly as listed in the playlist, i.e. without a trailing slash.
+    # hls.js requests segments exactly as listed in the playlist, i.e.
+    # without a trailing slash.
     path(
         'video/<int:movie_id>/<str:resolution>/<str:segment>',
         HlsSegmentView.as_view(),

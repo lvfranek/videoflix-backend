@@ -11,11 +11,16 @@ from .helpers import VideoTestCase, create_hls_files, create_video
 
 
 class MediaAccessTests(VideoTestCase):
-    """Only thumbnails are public; video files must not bypass the authenticated API."""
+    """
+    Only thumbnails are public; video files must not bypass the
+    authenticated API.
+    """
 
     def setUp(self):
         super().setUp()
-        self.video = create_video(thumbnail=SimpleUploadedFile('thumb.jpg', b'jpg-bytes'))
+        self.video = create_video(
+            thumbnail=SimpleUploadedFile('thumb.jpg', b'jpg-bytes')
+        )
         create_hls_files(self.video)
 
     def assert_video_files_not_served(self):
@@ -26,7 +31,9 @@ class MediaAccessTests(VideoTestCase):
         )
         for url in protected_urls:
             with self.subTest(url=url):
-                self.assertEqual(self.client.get(url).status_code, status.HTTP_404_NOT_FOUND)
+                self.assertEqual(
+                    self.client.get(url).status_code, status.HTTP_404_NOT_FOUND
+                )
 
     def test_thumbnail_is_public(self):
         response = self.client.get(self.video.thumbnail.url)
@@ -37,7 +44,8 @@ class MediaAccessTests(VideoTestCase):
         self.assert_video_files_not_served()
 
     def test_video_files_stay_private_in_debug_mode(self):
-        # The test runner forces DEBUG=False, so load the URLs again the way local development sees them.
+        # The test runner forces DEBUG=False, so load the URLs again the
+        # way local development sees them.
         self.addCleanup(clear_url_caches)
         self.addCleanup(importlib.reload, root_urls)
         with override_settings(DEBUG=True):

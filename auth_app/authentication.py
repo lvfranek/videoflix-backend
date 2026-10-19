@@ -5,7 +5,8 @@ from .utils import ACCESS_TOKEN_COOKIE
 
 class CookieJWTAuthentication(JWTAuthentication):
     """
-    Authenticate requests with the JWT access token from an HttpOnly cookie.
+    Authenticate requests with the JWT access token from an HttpOnly
+    cookie.
 
     The frontend never sees the token itself, so it cannot send an
     Authorization header; the browser attaches the cookie instead.

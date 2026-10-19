@@ -23,7 +23,9 @@ class ActivationTests(APITestCase):
     def test_valid_link_activates_account(self):
         response = self.activate(self.uid, self.token)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data, {'message': 'Account successfully activated.'})
+        self.assertEqual(
+            response.data, {'message': 'Account successfully activated.'}
+        )
         self.user.refresh_from_db()
         self.assertTrue(self.user.is_active)
 
@@ -42,7 +44,9 @@ class ActivationTests(APITestCase):
         for case, (uid, token) in invalid_links.items():
             with self.subTest(case=case):
                 response = self.activate(uid, token)
-                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertEqual(
+                    response.status_code, status.HTTP_400_BAD_REQUEST
+                )
                 self.assertEqual(response.data, FAILED)
         self.user.refresh_from_db()
         self.assertFalse(self.user.is_active)

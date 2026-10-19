@@ -15,17 +15,31 @@ ENQUEUE = 'video_app.tasks.django_rq.enqueue'
 class UploadSignalTests(VideoTestCase):
     """A new upload starts the background conversion exactly once."""
 
+    def upload_video(self):
+        upload = SimpleUploadedFile('new.mp4', b'video')
+        return Video.objects.create(
+            title='New',
+            description='-',
+            category=Video.Category.ACTION,
+            video_file=upload,
+        )
+
     def test_upload_queues_processing_job_after_commit(self):
-        with patch(ENQUEUE) as enqueue, self.captureOnCommitCallbacks(execute=True):
-            video = Video.objects.create(
-                title='New', description='-', category=Video.Category.ACTION,
-                video_file=SimpleUploadedFile('new.mp4', b'video', content_type='video/mp4'),
-            )
-        enqueue.assert_called_once_with(process_video, video.pk, job_timeout=VIDEO_JOB_TIMEOUT)
+        with (
+            patch(ENQUEUE) as enqueue,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            video = self.upload_video()
+        enqueue.assert_called_once_with(
+            process_video, video.pk, job_timeout=VIDEO_JOB_TIMEOUT
+        )
 
     def test_editing_a_video_does_not_queue_it_again(self):
         video = create_video()
-        with patch(ENQUEUE) as enqueue, self.captureOnCommitCallbacks(execute=True):
+        with (
+            patch(ENQUEUE) as enqueue,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
             video.title = 'Renamed'
             video.save()
         enqueue.assert_not_called()
@@ -36,9 +50,14 @@ class DeleteSignalTests(VideoTestCase):
 
     def setUp(self):
         super().setUp()
-        self.video = create_video(thumbnail=SimpleUploadedFile('thumb.jpg', b'jpg'))
+        self.video = create_video(
+            thumbnail=SimpleUploadedFile('thumb.jpg', b'jpg')
+        )
         create_hls_files(self.video)
-        self.files = [Path(self.video.video_file.path), Path(self.video.thumbnail.path)]
+        self.files = [
+            Path(self.video.video_file.path),
+            Path(self.video.thumbnail.path),
+        ]
         self.hls_directory = get_video_directory(self.video.pk)
 
     def assert_all_files_removed(self):
@@ -71,7 +90,9 @@ class CacheInvalidationTests(VideoTestCase):
     def assert_cache_key_changes(self, change):
         key_before = get_video_list_cache_key('http://testserver/')
         change()
-        self.assertNotEqual(get_video_list_cache_key('http://testserver/'), key_before)
+        self.assertNotEqual(
+            get_video_list_cache_key('http://testserver/'), key_before
+        )
 
     def test_upload_invalidates_cached_list(self):
         self.assert_cache_key_changes(create_video)
@@ -82,7 +103,9 @@ class CacheInvalidationTests(VideoTestCase):
 
     def test_status_change_invalidates_cached_list(self):
         video = create_video(status=Video.Status.PROCESSING)
-        self.assert_cache_key_changes(lambda: video.set_status(Video.Status.READY))
+        self.assert_cache_key_changes(
+            lambda: video.set_status(Video.Status.READY)
+        )
 
     def test_delete_invalidates_cached_list(self):
         video = create_video()

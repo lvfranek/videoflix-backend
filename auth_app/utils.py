@@ -5,7 +5,10 @@ from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.contrib.auth.tokens import PasswordResetTokenGenerator, default_token_generator
+from django.contrib.auth.tokens import (
+    PasswordResetTokenGenerator,
+    default_token_generator,
+)
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes, force_str
@@ -15,7 +18,10 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.settings import api_settings as jwt_settings
-from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
+from rest_framework_simplejwt.token_blacklist.models import (
+    BlacklistedToken,
+    OutstandingToken,
+)
 from rest_framework_simplejwt.tokens import RefreshToken
 
 ACCESS_TOKEN_COOKIE = 'access_token'
@@ -23,7 +29,13 @@ REFRESH_TOKEN_COOKIE = 'refresh_token'
 
 EMAIL_TEMPLATE_DIR = 'auth_app/emails'
 EMAIL_LOGO_CID = 'videoflix-logo'
-EMAIL_LOGO_PATH = Path(__file__).resolve().parent / 'static' / 'auth_app' / 'images' / 'email_logo.png'
+EMAIL_LOGO_PATH = (
+    Path(__file__).resolve().parent
+    / 'static'
+    / 'auth_app'
+    / 'images'
+    / 'email_logo.png'
+)
 
 
 class AccountActivationTokenGenerator(PasswordResetTokenGenerator):
@@ -47,17 +59,23 @@ def encode_uid(user):
 
 
 def get_user_from_uid(uidb64):
-    """Return the user encoded in a URL-safe base64 uid, or None if it is invalid."""
-    User = get_user_model()
+    """
+    Return the user encoded in a URL-safe base64 uid, or None if it is
+    invalid.
+    """
+    user_model = get_user_model()
     try:
         user_id = force_str(urlsafe_base64_decode(uidb64))
-        return User.objects.get(pk=user_id)
-    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        return user_model.objects.get(pk=user_id)
+    except (TypeError, ValueError, OverflowError, user_model.DoesNotExist):
         return None
 
 
 def activate_user(uidb64, token):
-    """Activate the account behind uid and token; return whether it succeeded."""
+    """
+    Activate the account behind uid and token; return whether it
+    succeeded.
+    """
     user = get_user_from_uid(uidb64)
     if user is None or not account_activation_token.check_token(user, token):
         return False
@@ -67,7 +85,10 @@ def activate_user(uidb64, token):
 
 
 def get_user_from_reset_link(uidb64, token):
-    """Return the user of a password reset link, or None if the link is invalid or expired."""
+    """
+    Return the user of a password reset link, or None if the link is
+    invalid or expired.
+    """
     user = get_user_from_uid(uidb64)
     if user is None or not default_token_generator.check_token(user, token):
         return None
@@ -75,24 +96,31 @@ def get_user_from_reset_link(uidb64, token):
 
 
 def blacklist_all_refresh_tokens(user):
-    """Invalidate every refresh token of a user, which ends all of their sessions."""
+    """
+    Invalidate every refresh token of a user, which ends all of their
+    sessions.
+    """
     for outstanding_token in OutstandingToken.objects.filter(user=user):
         BlacklistedToken.objects.get_or_create(token=outstanding_token)
 
 
 def find_user_by_credentials(email, password):
     """Return the user matching email and password, or None."""
-    User = get_user_model()
-    user = User.objects.filter(email__iexact=email.strip()).first()
+    user_model = get_user_model()
+    user = user_model.objects.filter(email__iexact=email.strip()).first()
     if user is None:
-        # Hash anyway so unknown emails take as long as wrong passwords (no user enumeration).
-        User().set_password(password)
+        # Hash anyway so unknown emails take as long as wrong passwords
+        # (no user enumeration).
+        user_model().set_password(password)
         return None
     return user if user.check_password(password) else None
 
 
 def set_cookie(response, name, value, lifetime):
-    """Set an HttpOnly auth cookie that the frontend JavaScript cannot read."""
+    """
+    Set an HttpOnly auth cookie that the frontend JavaScript cannot
+    read.
+    """
     response.set_cookie(
         name,
         value,
@@ -105,13 +133,25 @@ def set_cookie(response, name, value, lifetime):
 
 def set_access_cookie(response, access_token):
     """Attach an access token as HttpOnly cookie."""
-    set_cookie(response, ACCESS_TOKEN_COOKIE, str(access_token), jwt_settings.ACCESS_TOKEN_LIFETIME)
+    set_cookie(
+        response,
+        ACCESS_TOKEN_COOKIE,
+        str(access_token),
+        jwt_settings.ACCESS_TOKEN_LIFETIME,
+    )
 
 
 def set_auth_cookies(response, refresh_token):
-    """Attach the access and refresh token of a login as HttpOnly cookies."""
+    """
+    Attach the access and refresh token of a login as HttpOnly cookies.
+    """
     set_access_cookie(response, refresh_token.access_token)
-    set_cookie(response, REFRESH_TOKEN_COOKIE, str(refresh_token), jwt_settings.REFRESH_TOKEN_LIFETIME)
+    set_cookie(
+        response,
+        REFRESH_TOKEN_COOKIE,
+        str(refresh_token),
+        jwt_settings.REFRESH_TOKEN_LIFETIME,
+    )
 
 
 def delete_auth_cookies(response):
@@ -121,13 +161,19 @@ def delete_auth_cookies(response):
 
 
 def blacklist_refresh_token(raw_refresh_token):
-    """Put a refresh token on the blacklist; invalid, expired or already blacklisted tokens are ignored."""
+    """
+    Put a refresh token on the blacklist; invalid, expired or already
+    blacklisted tokens are ignored.
+    """
     with suppress(TokenError):
         RefreshToken(raw_refresh_token).blacklist()
 
 
 def refresh_access_token(raw_refresh_token):
-    """Return a new access token for a valid refresh token, or None if it is invalid or blacklisted."""
+    """
+    Return a new access token for a valid refresh token, or None if it
+    is invalid or blacklisted.
+    """
     serializer = TokenRefreshSerializer(data={'refresh': raw_refresh_token})
     try:
         serializer.is_valid(raise_exception=True)
@@ -137,13 +183,19 @@ def refresh_access_token(raw_refresh_token):
 
 
 def build_frontend_auth_link(page, user, token):
-    """Build a link to a frontend auth page that carries uid and token as query parameters."""
+    """
+    Build a link to a frontend auth page that carries uid and token as
+    query parameters.
+    """
     query = urlencode({'uid': encode_uid(user), 'token': token})
     return f'{settings.FRONTEND_URL}/pages/auth/{page}?{query}'
 
 
 def build_logo_attachment():
-    """Return the Videoflix logo as inline image, referenced in templates via its content id."""
+    """
+    Return the Videoflix logo as inline image, referenced in templates
+    via its content id.
+    """
     logo = MIMEPart()
     logo.set_content(
         EMAIL_LOGO_PATH.read_bytes(),
@@ -156,11 +208,20 @@ def build_logo_attachment():
 
 
 def send_templated_email(subject, template_name, context, recipient):
-    """Render the text and HTML version of an email template and send both with the inline logo."""
+    """
+    Render the text and HTML version of an email template and send both
+    with the inline logo.
+    """
     context = {**context, 'logo_cid': EMAIL_LOGO_CID}
-    text_body = render_to_string(f'{EMAIL_TEMPLATE_DIR}/{template_name}.txt', context)
-    html_body = render_to_string(f'{EMAIL_TEMPLATE_DIR}/{template_name}.html', context)
-    email = EmailMultiAlternatives(subject=subject, body=text_body, to=[recipient])
+    text_body = render_to_string(
+        f'{EMAIL_TEMPLATE_DIR}/{template_name}.txt', context
+    )
+    html_body = render_to_string(
+        f'{EMAIL_TEMPLATE_DIR}/{template_name}.html', context
+    )
+    email = EmailMultiAlternatives(
+        subject=subject, body=text_body, to=[recipient]
+    )
     email.attach_alternative(html_body, 'text/html')
     email.attach(build_logo_attachment())
     email.send()

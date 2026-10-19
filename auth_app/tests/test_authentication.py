@@ -36,8 +36,14 @@ class CookieJWTAuthenticationTests(APITestCase):
     def test_invalid_tokens_are_rejected(self):
         expired = AccessToken.for_user(self.user)
         expired.set_exp(lifetime=-timedelta(minutes=1))
-        for case, raw_token in {'garbage': 'not-a-jwt', 'expired': str(expired)}.items():
-            with self.subTest(case=case), self.assertRaises(AuthenticationFailed):
+        for case, raw_token in {
+            'garbage': 'not-a-jwt',
+            'expired': str(expired),
+        }.items():
+            with (
+                self.subTest(case=case),
+                self.assertRaises(AuthenticationFailed),
+            ):
                 self.authenticate(raw_token)
 
     def test_inactive_user_is_rejected(self):

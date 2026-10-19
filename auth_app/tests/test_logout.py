@@ -4,7 +4,12 @@ from rest_framework.test import APITestCase
 
 from .helpers import create_user, log_in
 
-LOGOUT_SUCCESS = {'detail': 'Logout successful! All tokens will be deleted. Refresh token is now invalid.'}
+LOGOUT_SUCCESS = {
+    'detail': (
+        'Logout successful! All tokens will be deleted. '
+        'Refresh token is now invalid.'
+    )
+}
 
 
 class LogoutTests(APITestCase):
@@ -35,7 +40,9 @@ class LogoutTests(APITestCase):
         response = self.client.post(reverse('token_refresh'))
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-    def test_missing_refresh_cookie_returns_400_and_still_deletes_cookies(self):
+    def test_missing_refresh_cookie_returns_400_and_still_deletes_cookies(
+        self,
+    ):
         del self.client.cookies['refresh_token']
         response = self.client.post(self.url)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

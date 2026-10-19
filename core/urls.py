@@ -10,7 +10,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('auth_app.api.urls')),
     path('api/', include('video_app.api.urls')),
-    # Only thumbnails are public; videos are streamed through the authenticated API.
+    # Only thumbnails are public; videos are streamed through the
+    # authenticated API.
     re_path(
         rf'^{settings.MEDIA_URL.lstrip("/")}thumbnails/(?P<path>.+)$',
         serve_thumbnail,

@@ -1,8 +1,12 @@
+from importlib import import_module
+
 from django.apps import AppConfig
 
 
 class VideoAppConfig(AppConfig):
+    """App config of the video app; registers its signal receivers."""
+
     name = 'video_app'
 
     def ready(self):
-        from . import signals  # noqa: F401  (registers the signal receivers)
+        import_module('video_app.signals')

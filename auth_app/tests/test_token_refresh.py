@@ -40,18 +40,22 @@ class TokenRefreshTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data, {'detail': 'Refresh token missing.'})
 
-    def test_invalid_refresh_tokens_return_401(self):
+    def build_invalid_tokens(self):
         blacklisted = RefreshToken.for_user(self.user)
         blacklisted.blacklist()
-        invalid_tokens = {
+        return {
             'garbage': 'not-a-jwt',
-            'access token instead of refresh': str(AccessToken.for_user(self.user)),
+            'access instead of refresh': str(AccessToken.for_user(self.user)),
             'blacklisted': str(blacklisted),
         }
-        for case, raw_token in invalid_tokens.items():
+
+    def test_invalid_refresh_tokens_return_401(self):
+        for case, raw_token in self.build_invalid_tokens().items():
             with self.subTest(case=case):
                 response = self.refresh_with(raw_token)
-                self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+                self.assertEqual(
+                    response.status_code, status.HTTP_401_UNAUTHORIZED
+                )
                 self.assertEqual(response.data, INVALID_REFRESH)
 
     def test_refresh_fails_for_inactive_user(self):

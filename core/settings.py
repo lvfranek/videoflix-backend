@@ -15,13 +15,26 @@ load_dotenv()
 
 
 def env_bool(name, default=False):
-    """Interpret common truthy strings ("true", "1", "yes") from the environment."""
-    return os.getenv(name, str(default)).strip().lower() in ('true', '1', 'yes')
+    """
+    Interpret common truthy strings ("true", "1", "yes") from the
+    environment.
+    """
+    return os.getenv(name, str(default)).strip().lower() in (
+        'true',
+        '1',
+        'yes',
+    )
 
 
 def env_list(name, default=''):
-    """Split a comma-separated environment variable into a clean list."""
-    return [item.strip() for item in os.getenv(name, default).split(',') if item.strip()]
+    """
+    Split a comma-separated environment variable into a clean list.
+    """
+    return [
+        item.strip()
+        for item in os.getenv(name, default).split(',')
+        if item.strip()
+    ]
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -37,7 +50,9 @@ DEBUG = env_bool('DEBUG')
 
 ALLOWED_HOSTS = env_list('ALLOWED_HOSTS', 'localhost,127.0.0.1')
 
-CSRF_TRUSTED_ORIGINS = env_list('CSRF_TRUSTED_ORIGINS', 'http://localhost:5500,http://127.0.0.1:5500')
+CSRF_TRUSTED_ORIGINS = env_list(
+    'CSRF_TRUSTED_ORIGINS', 'http://localhost:5500,http://127.0.0.1:5500'
+)
 
 
 # Application definition
@@ -137,7 +152,8 @@ RQ_QUEUES = {
 
 AUTH_USER_MODEL = 'auth_app.User'
 
-# Activation and password reset links are valid for 24 hours (as stated in the emails).
+# Activation and password reset links are valid for 24 hours (as stated
+# in the emails).
 PASSWORD_RESET_TIMEOUT = 60 * 60 * 24
 
 
@@ -160,7 +176,8 @@ SIMPLE_JWT = {
 }
 
 
-# CORS – the frontend is served from a different origin and sends cookies
+# CORS – the frontend is served from a different origin and sends
+# cookies
 # https://github.com/adamchainz/django-cors-headers
 
 CORS_ALLOWED_ORIGINS = CSRF_TRUSTED_ORIGINS
@@ -171,19 +188,13 @@ CORS_ALLOW_CREDENTIALS = True
 # Password validation
 # https://docs.djangoproject.com/en/6.1/ref/settings/#auth-password-validators
 
+PASSWORD_VALIDATION = 'django.contrib.auth.password_validation'
+
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': f'{PASSWORD_VALIDATION}.UserAttributeSimilarityValidator'},
+    {'NAME': f'{PASSWORD_VALIDATION}.MinimumLengthValidator'},
+    {'NAME': f'{PASSWORD_VALIDATION}.CommonPasswordValidator'},
+    {'NAME': f'{PASSWORD_VALIDATION}.NumericPasswordValidator'},
 ]
 
 
@@ -224,28 +235,38 @@ STORAGES = {
 PLACEHOLDER_EMAIL_HOSTS = ('', 'smtp.example.com')
 
 
+def build_smtp_options(host):
+    """Collect the SMTP connection settings from the environment."""
+    return {
+        'host': host,
+        'port': int(os.getenv('EMAIL_PORT', 587)),
+        'username': os.getenv('EMAIL_HOST_USER', ''),
+        'password': os.getenv('EMAIL_HOST_PASSWORD', ''),
+        'use_tls': env_bool('EMAIL_USE_TLS', True),
+        'use_ssl': env_bool('EMAIL_USE_SSL'),
+        'timeout': 10,
+    }
+
+
 def build_default_mailer():
-    """Send emails via SMTP once real server data is in .env, otherwise print them to the console."""
+    """
+    Send emails via SMTP once real server data is in .env, otherwise
+    print them to the console.
+    """
     host = os.getenv('EMAIL_HOST', '')
     if host in PLACEHOLDER_EMAIL_HOSTS:
         return {'BACKEND': 'django.core.mail.backends.console.EmailBackend'}
     return {
         'BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
-        'OPTIONS': {
-            'host': host,
-            'port': int(os.getenv('EMAIL_PORT', 587)),
-            'username': os.getenv('EMAIL_HOST_USER', ''),
-            'password': os.getenv('EMAIL_HOST_PASSWORD', ''),
-            'use_tls': env_bool('EMAIL_USE_TLS', True),
-            'use_ssl': env_bool('EMAIL_USE_SSL'),
-            'timeout': 10,
-        },
+        'OPTIONS': build_smtp_options(host),
     }
 
 
 MAILERS = {'default': build_default_mailer()}
 
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'Videoflix <noreply@videoflix.local>')
+DEFAULT_FROM_EMAIL = os.getenv(
+    'DEFAULT_FROM_EMAIL', 'Videoflix <noreply@videoflix.local>'
+)
 
 
 # Frontend

@@ -18,14 +18,20 @@ class LoginTests(APITestCase):
     def test_success_returns_documented_body(self):
         response = log_in(self.client)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data, {
-            'detail': 'Login successful',
-            'user': {'id': self.user.id, 'username': 'user@example.com'},
-        })
+        self.assertEqual(
+            response.data,
+            {
+                'detail': 'Login successful',
+                'user': {'id': self.user.id, 'username': 'user@example.com'},
+            },
+        )
 
     def test_success_sets_http_only_token_cookies(self):
         response = log_in(self.client)
-        expected_lifetimes = {'access_token': 30 * 60, 'refresh_token': 24 * 60 * 60}
+        expected_lifetimes = {
+            'access_token': 30 * 60,
+            'refresh_token': 24 * 60 * 60,
+        }
         for cookie_name, lifetime in expected_lifetimes.items():
             with self.subTest(cookie=cookie_name):
                 cookie = response.cookies[cookie_name]
@@ -37,13 +43,17 @@ class LoginTests(APITestCase):
     def test_cookies_are_secure_unless_debug(self):
         self.assertTrue(log_in(self.client).cookies['access_token']['secure'])
         with override_settings(DEBUG=True):
-            self.assertFalse(log_in(self.client).cookies['access_token']['secure'])
+            self.assertFalse(
+                log_in(self.client).cookies['access_token']['secure']
+            )
 
     def test_success_records_login_and_refresh_token(self):
         log_in(self.client)
         self.user.refresh_from_db()
         self.assertIsNotNone(self.user.last_login)
-        self.assertEqual(OutstandingToken.objects.filter(user=self.user).count(), 1)
+        self.assertEqual(
+            OutstandingToken.objects.filter(user=self.user).count(), 1
+        )
 
     def test_email_is_case_insensitive(self):
         response = log_in(self.client, email='User@Example.com')
@@ -57,12 +67,19 @@ class LoginTests(APITestCase):
             self.assertEqual(response.data, INVALID_CREDENTIALS)
             self.assertNotIn('access_token', response.cookies)
 
-    def test_inactive_user_is_asked_to_activate_only_with_correct_password(self):
+    def test_inactive_user_is_asked_to_activate_only_with_correct_password(
+        self,
+    ):
         create_user(email='inactive@example.com', is_active=False)
         correct = log_in(self.client, email='inactive@example.com')
-        wrong = log_in(self.client, email='inactive@example.com', password='Wrong!2026')
+        wrong = log_in(
+            self.client, email='inactive@example.com', password='Wrong!2026'
+        )
         self.assertEqual(correct.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(correct.data, {'non_field_errors': ['Please activate your account first.']})
+        self.assertEqual(
+            correct.data,
+            {'non_field_errors': ['Please activate your account first.']},
+        )
         self.assertEqual(wrong.data, INVALID_CREDENTIALS)
 
     def test_missing_fields_are_rejected(self):
