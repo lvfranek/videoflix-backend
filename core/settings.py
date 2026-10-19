@@ -6,6 +6,7 @@ See .env.template for the full list of variables.
 """
 
 import os
+from datetime import timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -49,12 +50,16 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework_simplejwt.token_blacklist',
+    'corsheaders',
     'django_rq',
+    'auth_app',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -124,6 +129,36 @@ RQ_QUEUES = {
         'DEFAULT_TIMEOUT': 900,
     },
 }
+
+
+# Authentication
+# https://docs.djangoproject.com/en/6.1/topics/auth/customizing/
+
+AUTH_USER_MODEL = 'auth_app.User'
+
+
+# Django REST framework & JWT
+# https://django-rest-framework-simplejwt.readthedocs.io/en/latest/settings.html
+
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
+
+SIMPLE_JWT = {
+    # The frontend refreshes the access token every 20 minutes.
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+}
+
+
+# CORS – the frontend is served from a different origin and sends cookies
+# https://github.com/adamchainz/django-cors-headers
+
+CORS_ALLOWED_ORIGINS = CSRF_TRUSTED_ORIGINS
+
+CORS_ALLOW_CREDENTIALS = True
 
 
 # Password validation

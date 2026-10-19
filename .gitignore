@@ -225,3 +225,7 @@ staticfiles/
 /resources
 # Collected static files (docker volume mount point)
 /static/
+
+# Local AI assistant context
+CLAUDE.md
+.claude/
