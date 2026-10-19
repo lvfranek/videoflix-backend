@@ -221,13 +221,31 @@ STORAGES = {
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 
-MAILERS = {
-    'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
-    },
-}
+PLACEHOLDER_EMAIL_HOSTS = ('', 'smtp.example.com')
 
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@videoflix.local')
+
+def build_default_mailer():
+    """Send emails via SMTP once real server data is in .env, otherwise print them to the console."""
+    host = os.getenv('EMAIL_HOST', '')
+    if host in PLACEHOLDER_EMAIL_HOSTS:
+        return {'BACKEND': 'django.core.mail.backends.console.EmailBackend'}
+    return {
+        'BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
+        'OPTIONS': {
+            'host': host,
+            'port': int(os.getenv('EMAIL_PORT', 587)),
+            'username': os.getenv('EMAIL_HOST_USER', ''),
+            'password': os.getenv('EMAIL_HOST_PASSWORD', ''),
+            'use_tls': env_bool('EMAIL_USE_TLS', True),
+            'use_ssl': env_bool('EMAIL_USE_SSL'),
+            'timeout': 10,
+        },
+    }
+
+
+MAILERS = {'default': build_default_mailer()}
+
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'Videoflix <noreply@videoflix.local>')
 
 
 # Frontend
