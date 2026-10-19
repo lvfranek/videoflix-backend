@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_rq',
     'auth_app',
+    'video_app',
 ]
 
 MIDDLEWARE = [
