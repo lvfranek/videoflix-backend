@@ -8,7 +8,11 @@ from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes, force_str
+from django.core.exceptions import ObjectDoesNotExist
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from rest_framework.exceptions import AuthenticationFailed
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.settings import api_settings as jwt_settings
 
 ACCESS_TOKEN_COOKIE = 'access_token'
@@ -82,10 +86,25 @@ def set_cookie(response, name, value, lifetime):
     )
 
 
+def set_access_cookie(response, access_token):
+    """Attach an access token as HttpOnly cookie."""
+    set_cookie(response, ACCESS_TOKEN_COOKIE, str(access_token), jwt_settings.ACCESS_TOKEN_LIFETIME)
+
+
 def set_auth_cookies(response, refresh_token):
     """Attach the access and refresh token of a login as HttpOnly cookies."""
-    set_cookie(response, ACCESS_TOKEN_COOKIE, str(refresh_token.access_token), jwt_settings.ACCESS_TOKEN_LIFETIME)
+    set_access_cookie(response, refresh_token.access_token)
     set_cookie(response, REFRESH_TOKEN_COOKIE, str(refresh_token), jwt_settings.REFRESH_TOKEN_LIFETIME)
+
+
+def refresh_access_token(raw_refresh_token):
+    """Return a new access token for a valid refresh token, or None if it is invalid or blacklisted."""
+    serializer = TokenRefreshSerializer(data={'refresh': raw_refresh_token})
+    try:
+        serializer.is_valid(raise_exception=True)
+    except (TokenError, AuthenticationFailed, ObjectDoesNotExist):
+        return None
+    return serializer.validated_data['access']
 
 
 def build_frontend_auth_link(page, user, token):

@@ -6,7 +6,14 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from auth_app.tasks import queue_activation_email
-from auth_app.utils import account_activation_token, activate_user, set_auth_cookies
+from auth_app.utils import (
+    REFRESH_TOKEN_COOKIE,
+    account_activation_token,
+    activate_user,
+    refresh_access_token,
+    set_access_cookie,
+    set_auth_cookies,
+)
 
 from .serializers import LoginSerializer, RegistrationSerializer
 
@@ -57,4 +64,22 @@ class LoginView(APIView):
             'user': {'id': user.id, 'username': user.username},
         }, status=status.HTTP_200_OK)
         set_auth_cookies(response, RefreshToken.for_user(user))
+        return response
+
+
+class CookieTokenRefreshView(APIView):
+    """Issue a new access token cookie based on the refresh token cookie."""
+
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        refresh_token = request.COOKIES.get(REFRESH_TOKEN_COOKIE)
+        if refresh_token is None:
+            return Response({'detail': 'Refresh token missing.'}, status=status.HTTP_400_BAD_REQUEST)
+        access_token = refresh_access_token(refresh_token)
+        if access_token is None:
+            return Response({'detail': 'Invalid refresh token.'}, status=status.HTTP_401_UNAUTHORIZED)
+        response = Response({'detail': 'Token refreshed', 'access': access_token}, status=status.HTTP_200_OK)
+        set_access_cookie(response, access_token)
         return response
