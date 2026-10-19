@@ -8,7 +8,9 @@ from unittest.mock import patch
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 from rest_framework.test import APITestCase
+from rest_framework_simplejwt.tokens import AccessToken
 
+from auth_app.tests.helpers import create_user
 from video_app.models import Video
 from video_app.utils import get_hls_directory
 
@@ -47,3 +49,9 @@ def create_hls_files(video, resolutions=('480p', '720p', '1080p'), segments=2):
         (folder / 'index.m3u8').write_text('#EXTM3U\n#EXT-X-ENDLIST\n')
         for number in range(segments):
             (folder / f'{number:03d}.ts').write_bytes(b'segment')
+
+
+def authenticate(client):
+    """Give the test client a valid access token cookie, like after a login."""
+    user = create_user(password=None)
+    client.cookies['access_token'] = str(AccessToken.for_user(user))
