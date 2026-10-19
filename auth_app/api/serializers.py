@@ -2,6 +2,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
+from auth_app.utils import find_user_by_credentials
+
 User = get_user_model()
 
 
@@ -37,3 +39,19 @@ class RegistrationSerializer(serializers.ModelSerializer):
             password=validated_data['password'],
             is_active=False,
         )
+
+
+class LoginSerializer(serializers.Serializer):
+    """Checks email and password and provides the matching, active user."""
+
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        user = find_user_by_credentials(attrs['email'], attrs['password'])
+        if user is None:
+            raise serializers.ValidationError('Invalid email or password.')
+        if not user.is_active:
+            raise serializers.ValidationError('Please activate your account first.')
+        attrs['user'] = user
+        return attrs

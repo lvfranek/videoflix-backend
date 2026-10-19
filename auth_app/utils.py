@@ -9,6 +9,10 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from rest_framework_simplejwt.settings import api_settings as jwt_settings
+
+ACCESS_TOKEN_COOKIE = 'access_token'
+REFRESH_TOKEN_COOKIE = 'refresh_token'
 
 EMAIL_TEMPLATE_DIR = 'auth_app/emails'
 EMAIL_LOGO_CID = 'videoflix-logo'
@@ -53,6 +57,35 @@ def activate_user(uidb64, token):
     user.is_active = True
     user.save(update_fields=['is_active'])
     return True
+
+
+def find_user_by_credentials(email, password):
+    """Return the user matching email and password, or None."""
+    User = get_user_model()
+    user = User.objects.filter(email__iexact=email.strip()).first()
+    if user is None:
+        # Hash anyway so unknown emails take as long as wrong passwords (no user enumeration).
+        User().set_password(password)
+        return None
+    return user if user.check_password(password) else None
+
+
+def set_cookie(response, name, value, lifetime):
+    """Set an HttpOnly auth cookie that the frontend JavaScript cannot read."""
+    response.set_cookie(
+        name,
+        value,
+        max_age=int(lifetime.total_seconds()),
+        httponly=True,
+        secure=not settings.DEBUG,
+        samesite='Lax',
+    )
+
+
+def set_auth_cookies(response, refresh_token):
+    """Attach the access and refresh token of a login as HttpOnly cookies."""
+    set_cookie(response, ACCESS_TOKEN_COOKIE, str(refresh_token.access_token), jwt_settings.ACCESS_TOKEN_LIFETIME)
+    set_cookie(response, REFRESH_TOKEN_COOKIE, str(refresh_token), jwt_settings.REFRESH_TOKEN_LIFETIME)
 
 
 def build_frontend_auth_link(page, user, token):
