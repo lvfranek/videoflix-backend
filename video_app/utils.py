@@ -5,6 +5,7 @@ import subprocess
 from pathlib import Path
 
 from django.conf import settings
+from django.core.cache import cache
 
 # Resolution name (as used in the API) -> output height in pixels
 HLS_RESOLUTIONS = {'480p': 480, '720p': 720, '1080p': 1080}
@@ -13,6 +14,9 @@ HLS_PLAYLIST_NAME = 'index.m3u8'
 
 THUMBNAIL_DIRECTORY = 'thumbnails'
 THUMBNAIL_WIDTH = 1280
+
+VIDEO_LIST_CACHE_TIMEOUT = 60 * 15
+VIDEO_LIST_VERSION_KEY = 'video_list:version'
 
 
 def get_video_directory(video_id):
@@ -92,3 +96,22 @@ def delete_video_files(video, video_id):
     video.video_file.delete(save=False)
     video.thumbnail.delete(save=False)
     shutil.rmtree(get_video_directory(video_id), ignore_errors=True)
+
+
+def get_video_list_cache_key(base_url):
+    """
+    Return the cache key of the video list for one base URL.
+
+    The key contains the base URL because the thumbnail URLs are absolute, and a
+    version number so that one increment invalidates the list for every host.
+    """
+    version = cache.get_or_set(VIDEO_LIST_VERSION_KEY, 1, timeout=None)
+    return f'video_list:v{version}:{base_url}'
+
+
+def invalidate_video_list_cache():
+    """Make every cached video list outdated after videos were added, changed or removed."""
+    try:
+        cache.incr(VIDEO_LIST_VERSION_KEY)
+    except ValueError:
+        cache.set(VIDEO_LIST_VERSION_KEY, 1, timeout=None)

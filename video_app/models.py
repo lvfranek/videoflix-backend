@@ -1,6 +1,8 @@
 from django.core.validators import FileExtensionValidator
 from django.db import models
 
+from .utils import invalidate_video_list_cache
+
 VIDEO_EXTENSIONS = ['mp4', 'mov', 'mkv', 'webm', 'avi']
 THUMBNAIL_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp']
 
@@ -56,3 +58,4 @@ class Video(models.Model):
         """Store a new processing status without triggering save signals again."""
         self.status = status
         Video.objects.filter(pk=self.pk).update(status=status)
+        invalidate_video_list_cache()
