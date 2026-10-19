@@ -1,5 +1,7 @@
+import re
+
 from django.core.cache import cache
-from django.http import FileResponse
+from django.http import FileResponse, Http404
 from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -9,6 +11,8 @@ from video_app.utils import HLS_PLAYLIST_NAME, VIDEO_LIST_CACHE_TIMEOUT, get_vid
 
 from .mixins import HlsFileMixin
 from .serializers import VideoListSerializer
+
+SEGMENT_NAME_PATTERN = re.compile(r'\d+\.ts')
 
 
 class VideoListView(ListAPIView):
@@ -37,3 +41,13 @@ class HlsPlaylistView(HlsFileMixin, APIView):
     def get(self, request, movie_id, resolution):
         playlist_path = self.get_hls_file(movie_id, resolution, HLS_PLAYLIST_NAME)
         return FileResponse(playlist_path.open('rb'), content_type='application/vnd.apple.mpegurl')
+
+
+class HlsSegmentView(HlsFileMixin, APIView):
+    """Return a single HLS video segment (e.g. 000.ts) of a video in the requested resolution."""
+
+    def get(self, request, movie_id, resolution, segment):
+        if not SEGMENT_NAME_PATTERN.fullmatch(segment):
+            raise Http404('Unknown segment.')
+        segment_path = self.get_hls_file(movie_id, resolution, segment)
+        return FileResponse(segment_path.open('rb'), content_type='video/MP2T')
