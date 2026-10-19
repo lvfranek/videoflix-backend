@@ -17,7 +17,12 @@ from auth_app.utils import (
     set_auth_cookies,
 )
 
-from .serializers import LoginSerializer, PasswordResetRequestSerializer, RegistrationSerializer
+from .serializers import (
+    LoginSerializer,
+    PasswordResetConfirmSerializer,
+    PasswordResetRequestSerializer,
+    RegistrationSerializer,
+)
 
 GENERIC_INPUT_ERROR = 'Please check your input and try again.'
 LOGOUT_MESSAGE = 'Logout successful! All tokens will be deleted. Refresh token is now invalid.'
@@ -116,3 +121,17 @@ class PasswordResetRequestView(APIView):
         serializer.is_valid(raise_exception=True)
         queue_password_reset_email(serializer.validated_data['email'])
         return Response({'detail': 'An email has been sent to reset your password.'}, status=status.HTTP_200_OK)
+
+
+class PasswordResetConfirmView(APIView):
+    """Set a new password via the uid and token from the password reset email."""
+
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request, uidb64, token):
+        context = {'uidb64': uidb64, 'token': token}
+        serializer = PasswordResetConfirmSerializer(data=request.data, context=context)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({'detail': 'Your Password has been successfully reset.'}, status=status.HTTP_200_OK)

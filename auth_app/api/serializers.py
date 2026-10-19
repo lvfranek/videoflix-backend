@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
-from auth_app.utils import find_user_by_credentials
+from auth_app.utils import blacklist_all_refresh_tokens, find_user_by_credentials, get_user_from_reset_link
 
 User = get_user_model()
 
@@ -64,3 +64,27 @@ class PasswordResetRequestSerializer(serializers.Serializer):
 
     def validate_email(self, value):
         return value.strip().lower()
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    """Validates a password reset link (uid and token from the context) and the new password."""
+
+    new_password = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        user = get_user_from_reset_link(self.context['uidb64'], self.context['token'])
+        if user is None:
+            raise serializers.ValidationError('This reset link is invalid or has expired.')
+        if attrs['new_password'] != attrs['confirm_password']:
+            raise serializers.ValidationError('Passwords do not match.')
+        validate_password(attrs['new_password'], user=user)
+        attrs['user'] = user
+        return attrs
+
+    def save(self):
+        user = self.validated_data['user']
+        user.set_password(self.validated_data['new_password'])
+        user.save(update_fields=['password'])
+        blacklist_all_refresh_tokens(user)
+        return user

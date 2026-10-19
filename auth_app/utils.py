@@ -5,7 +5,7 @@ from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.contrib.auth.tokens import PasswordResetTokenGenerator, default_token_generator
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes, force_str
@@ -15,6 +15,7 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.settings import api_settings as jwt_settings
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 from rest_framework_simplejwt.tokens import RefreshToken
 
 ACCESS_TOKEN_COOKIE = 'access_token'
@@ -63,6 +64,20 @@ def activate_user(uidb64, token):
     user.is_active = True
     user.save(update_fields=['is_active'])
     return True
+
+
+def get_user_from_reset_link(uidb64, token):
+    """Return the user of a password reset link, or None if the link is invalid or expired."""
+    user = get_user_from_uid(uidb64)
+    if user is None or not default_token_generator.check_token(user, token):
+        return None
+    return user
+
+
+def blacklist_all_refresh_tokens(user):
+    """Invalidate every refresh token of a user, which ends all of their sessions."""
+    for outstanding_token in OutstandingToken.objects.filter(user=user):
+        BlacklistedToken.objects.get_or_create(token=outstanding_token)
 
 
 def find_user_by_credentials(email, password):
