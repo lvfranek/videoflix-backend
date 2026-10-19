@@ -51,3 +51,8 @@ class Video(models.Model):
 
     def __str__(self):
         return self.title
+
+    def set_status(self, status):
+        """Store a new processing status without triggering save signals again."""
+        self.status = status
+        Video.objects.filter(pk=self.pk).update(status=status)
