@@ -1,3 +1,4 @@
+from contextlib import suppress
 from email.message import MIMEPart
 from pathlib import Path
 from urllib.parse import urlencode
@@ -14,6 +15,7 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.settings import api_settings as jwt_settings
+from rest_framework_simplejwt.tokens import RefreshToken
 
 ACCESS_TOKEN_COOKIE = 'access_token'
 REFRESH_TOKEN_COOKIE = 'refresh_token'
@@ -95,6 +97,18 @@ def set_auth_cookies(response, refresh_token):
     """Attach the access and refresh token of a login as HttpOnly cookies."""
     set_access_cookie(response, refresh_token.access_token)
     set_cookie(response, REFRESH_TOKEN_COOKIE, str(refresh_token), jwt_settings.REFRESH_TOKEN_LIFETIME)
+
+
+def delete_auth_cookies(response):
+    """Remove the access and refresh token cookies from the browser."""
+    for cookie_name in (ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE):
+        response.delete_cookie(cookie_name, samesite='Lax')
+
+
+def blacklist_refresh_token(raw_refresh_token):
+    """Put a refresh token on the blacklist; invalid, expired or already blacklisted tokens are ignored."""
+    with suppress(TokenError):
+        RefreshToken(raw_refresh_token).blacklist()
 
 
 def refresh_access_token(raw_refresh_token):

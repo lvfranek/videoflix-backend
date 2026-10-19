@@ -10,6 +10,8 @@ from auth_app.utils import (
     REFRESH_TOKEN_COOKIE,
     account_activation_token,
     activate_user,
+    blacklist_refresh_token,
+    delete_auth_cookies,
     refresh_access_token,
     set_access_cookie,
     set_auth_cookies,
@@ -18,6 +20,7 @@ from auth_app.utils import (
 from .serializers import LoginSerializer, RegistrationSerializer
 
 GENERIC_INPUT_ERROR = 'Please check your input and try again.'
+LOGOUT_MESSAGE = 'Logout successful! All tokens will be deleted. Refresh token is now invalid.'
 
 
 class RegistrationView(APIView):
@@ -82,4 +85,21 @@ class CookieTokenRefreshView(APIView):
             return Response({'detail': 'Invalid refresh token.'}, status=status.HTTP_401_UNAUTHORIZED)
         response = Response({'detail': 'Token refreshed', 'access': access_token}, status=status.HTTP_200_OK)
         set_access_cookie(response, access_token)
+        return response
+
+
+class LogoutView(APIView):
+    """Log the user out by blacklisting the refresh token and deleting both auth cookies."""
+
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        refresh_token = request.COOKIES.get(REFRESH_TOKEN_COOKIE)
+        if refresh_token is None:
+            response = Response({'detail': 'Refresh token missing.'}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            blacklist_refresh_token(refresh_token)
+            response = Response({'detail': LOGOUT_MESSAGE}, status=status.HTTP_200_OK)
+        delete_auth_cookies(response)
         return response
