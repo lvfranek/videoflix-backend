@@ -223,3 +223,5 @@ cython_debug/
 staticfiles/
 
 /resources
+# Collected static files (docker volume mount point)
+/static/
