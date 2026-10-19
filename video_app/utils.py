@@ -1,5 +1,6 @@
 """Helpers to convert uploaded videos into HLS streams and thumbnails with FFmpeg."""
 
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -14,9 +15,14 @@ THUMBNAIL_DIRECTORY = 'thumbnails'
 THUMBNAIL_WIDTH = 1280
 
 
+def get_video_directory(video_id):
+    """Return the folder that holds all HLS resolutions of a video."""
+    return Path(settings.MEDIA_ROOT) / 'videos' / str(video_id)
+
+
 def get_hls_directory(video_id, resolution):
     """Return the folder that holds the HLS playlist and segments of one resolution."""
-    return Path(settings.MEDIA_ROOT) / 'videos' / str(video_id) / resolution
+    return get_video_directory(video_id) / resolution
 
 
 def build_hls_command(source_path, output_directory, height):
@@ -75,3 +81,14 @@ def ensure_thumbnail(video):
         return
     video.thumbnail.name = generate_thumbnail(video.video_file.path, video.pk)
     video.save(update_fields=['thumbnail'])
+
+
+def delete_video_files(video, video_id):
+    """
+    Remove the original upload, the thumbnail and all HLS streams of a video from disk.
+
+    The id is passed separately because Django resets `video.pk` to None after deletion.
+    """
+    video.video_file.delete(save=False)
+    video.thumbnail.delete(save=False)
+    shutil.rmtree(get_video_directory(video_id), ignore_errors=True)
