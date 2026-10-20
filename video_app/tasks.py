@@ -1,5 +1,8 @@
 """
 Background jobs of the video app, executed by the django-rq worker.
+
+Video jobs get a timeout of one hour, because converting long videos
+into three resolutions can take a while.
 """
 
 import subprocess
@@ -10,7 +13,6 @@ from django.db import transaction
 from .models import Video
 from .utils import convert_to_all_resolutions, ensure_thumbnail
 
-# Converting long videos into three resolutions can take a while.
 VIDEO_JOB_TIMEOUT = 60 * 60
 
 
@@ -41,4 +43,18 @@ def queue_video_processing(video):
         lambda: django_rq.enqueue(
             process_video, video.pk, job_timeout=VIDEO_JOB_TIMEOUT
         )
+    )
+
+
+def generate_missing_thumbnail(video_id):
+    """Create a new thumbnail for a video that lost its thumbnail."""
+    video = Video.objects.filter(pk=video_id).first()
+    if video is not None:
+        ensure_thumbnail(video)
+
+
+def queue_thumbnail_generation(video):
+    """Queue a new thumbnail once the change is committed."""
+    transaction.on_commit(
+        lambda: django_rq.enqueue(generate_missing_thumbnail, video.pk)
     )

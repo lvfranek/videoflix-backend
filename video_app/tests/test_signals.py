@@ -4,7 +4,11 @@ from unittest.mock import patch
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 from video_app.models import Video
-from video_app.tasks import VIDEO_JOB_TIMEOUT, process_video
+from video_app.tasks import (
+    VIDEO_JOB_TIMEOUT,
+    generate_missing_thumbnail,
+    process_video,
+)
 from video_app.utils import get_video_directory, get_video_list_cache_key
 
 from .helpers import VideoTestCase, create_hls_files, create_video
@@ -35,7 +39,7 @@ class UploadSignalTests(VideoTestCase):
         )
 
     def test_editing_a_video_does_not_queue_it_again(self):
-        video = create_video()
+        video = create_video(thumbnail=SimpleUploadedFile('own.jpg', b'jpg'))
         with (
             patch(ENQUEUE) as enqueue,
             self.captureOnCommitCallbacks(execute=True),
@@ -110,3 +114,35 @@ class CacheInvalidationTests(VideoTestCase):
     def test_delete_invalidates_cached_list(self):
         video = create_video()
         self.assert_cache_key_changes(video.delete)
+
+
+class RestoreThumbnailSignalTests(VideoTestCase):
+    """A removed thumbnail of a ready video is generated again."""
+
+    def save_without_thumbnail(self, video):
+        video.thumbnail = None
+        with (
+            patch(ENQUEUE) as enqueue,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            video.save()
+        return enqueue
+
+    def test_removed_thumbnail_queues_new_thumbnail(self):
+        video = create_video(thumbnail=SimpleUploadedFile('own.jpg', b'jpg'))
+        enqueue = self.save_without_thumbnail(video)
+        enqueue.assert_called_once_with(generate_missing_thumbnail, video.pk)
+
+    def test_unfinished_videos_are_left_to_the_conversion_job(self):
+        video = create_video(status=Video.Status.PROCESSING)
+        enqueue = self.save_without_thumbnail(video)
+        enqueue.assert_not_called()
+
+    def test_saving_with_thumbnail_queues_nothing(self):
+        video = create_video(thumbnail=SimpleUploadedFile('own.jpg', b'jpg'))
+        with (
+            patch(ENQUEUE) as enqueue,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            video.save()
+        enqueue.assert_not_called()

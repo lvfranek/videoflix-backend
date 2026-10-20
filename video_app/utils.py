@@ -1,6 +1,9 @@
 """
 Helpers to convert uploaded videos into HLS streams and thumbnails with
 FFmpeg.
+
+HLS_RESOLUTIONS maps the resolution names used by the API to the
+output height in pixels.
 """
 
 import shutil
@@ -10,7 +13,6 @@ from pathlib import Path
 from django.conf import settings
 from django.core.cache import cache
 
-# Resolution name (as used in the API) -> output height in pixels
 HLS_RESOLUTIONS = {'480p': 480, '720p': 720, '1080p': 1080}
 HLS_SEGMENT_SECONDS = 10
 HLS_PLAYLIST_NAME = 'index.m3u8'

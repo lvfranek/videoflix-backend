@@ -12,9 +12,13 @@ User = get_user_model()
 
 
 class RegistrationSerializer(serializers.ModelSerializer):
-    """Validates sign-up data and creates an inactive user."""
+    """
+    Validates sign-up data and creates an inactive user.
 
-    # Same max_length as the username field, which stores the email too.
+    The email allows 150 characters like the username field, because
+    the email is stored as username as well.
+    """
+
     email = serializers.EmailField(max_length=150)
     confirmed_password = serializers.CharField(write_only=True)
 

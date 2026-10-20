@@ -176,10 +176,12 @@ class PasswordResetConfirmTests(APITestCase):
                 self.assertIn(message, response.data['non_field_errors'])
 
     def test_reset_ends_all_existing_sessions(self):
+        """
+        The reset token is created after the login, because a login
+        invalidates earlier reset tokens by design.
+        """
         log_in(self.client)
         self.user.refresh_from_db()
-        # A login changes last_login, which invalidates earlier reset
-        # tokens by design.
         self.token = default_token_generator.make_token(self.user)
         self.confirm()
         response = self.client.post(reverse('token_refresh'))

@@ -44,8 +44,10 @@ class MediaAccessTests(VideoTestCase):
         self.assert_video_files_not_served()
 
     def test_video_files_stay_private_in_debug_mode(self):
-        # The test runner forces DEBUG=False, so load the URLs again the
-        # way local development sees them.
+        """
+        The test runner forces DEBUG=False, so the URLs are loaded again
+        the way local development (DEBUG=True) sees them.
+        """
         self.addCleanup(clear_url_caches)
         self.addCleanup(importlib.reload, root_urls)
         with override_settings(DEBUG=True):

@@ -1,3 +1,11 @@
+"""
+URLs of the video API.
+
+Segments are routed with and without a trailing slash: the endpoint
+documentation uses a slash, while hls.js requests segments exactly as
+they are listed in the playlist, i.e. without one.
+"""
+
 from django.urls import path
 
 from .views import HlsPlaylistView, HlsSegmentView, VideoListView
@@ -14,8 +22,6 @@ urlpatterns = [
         HlsSegmentView.as_view(),
         name='video-segment',
     ),
-    # hls.js requests segments exactly as listed in the playlist, i.e.
-    # without a trailing slash.
     path(
         'video/<int:movie_id>/<str:resolution>/<str:segment>',
         HlsSegmentView.as_view(),

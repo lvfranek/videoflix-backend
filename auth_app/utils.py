@@ -106,12 +106,15 @@ def blacklist_all_refresh_tokens(user):
 
 
 def find_user_by_credentials(email, password):
-    """Return the user matching email and password, or None."""
+    """
+    Return the user matching email and password, or None.
+
+    For unknown emails a password is hashed anyway, so both failure
+    cases take the same time and reveal nothing about registered users.
+    """
     user_model = get_user_model()
     user = user_model.objects.filter(email__iexact=email.strip()).first()
     if user is None:
-        # Hash anyway so unknown emails take as long as wrong passwords
-        # (no user enumeration).
         user_model().set_password(password)
         return None
     return user if user.check_password(password) else None

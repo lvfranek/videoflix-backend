@@ -1,8 +1,17 @@
 """
-Django settings for core project.
+Django settings for the Videoflix backend.
 
-All environment-specific values are read from the .env file.
-See .env.template for the full list of variables.
+All environment-specific values are read from the .env file; see
+.env.template for the full list of variables.
+
+- Access tokens live 30 minutes because the frontend refreshes them
+  every 20 minutes.
+- Activation and password reset links are valid for 24 hours, as
+  stated in the emails.
+- The frontend runs on another origin and sends cookies, so CORS
+  allows the origins from CSRF_TRUSTED_ORIGINS with credentials.
+- Emails are sent via SMTP once real server data is in .env;
+  otherwise they are printed to the console.
 """
 
 import os
@@ -37,12 +46,8 @@ def env_list(name, default=''):
     ]
 
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-# Security
-# https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 SECRET_KEY = os.getenv('SECRET_KEY')
 
@@ -54,8 +59,6 @@ CSRF_TRUSTED_ORIGINS = env_list(
     'CSRF_TRUSTED_ORIGINS', 'http://localhost:5500,http://127.0.0.1:5500'
 )
 
-
-# Application definition
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -104,9 +107,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'core.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/6.1/ref/settings/#databases
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -118,9 +118,6 @@ DATABASES = {
     }
 }
 
-
-# Cache (Redis)
-# https://github.com/jazzband/django-redis
 
 CACHES = {
     'default': {
@@ -134,9 +131,6 @@ CACHES = {
 }
 
 
-# Background jobs (django-rq)
-# https://github.com/rq/django-rq
-
 RQ_QUEUES = {
     'default': {
         'HOST': os.getenv('REDIS_HOST', 'redis'),
@@ -147,18 +141,10 @@ RQ_QUEUES = {
 }
 
 
-# Authentication
-# https://docs.djangoproject.com/en/6.1/topics/auth/customizing/
-
 AUTH_USER_MODEL = 'auth_app.User'
 
-# Activation and password reset links are valid for 24 hours (as stated
-# in the emails).
 PASSWORD_RESET_TIMEOUT = 60 * 60 * 24
 
-
-# Django REST framework & JWT
-# https://django-rest-framework-simplejwt.readthedocs.io/en/latest/settings.html
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -170,23 +156,15 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    # The frontend refreshes the access token every 20 minutes.
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
 }
 
 
-# CORS – the frontend is served from a different origin and sends
-# cookies
-# https://github.com/adamchainz/django-cors-headers
-
 CORS_ALLOWED_ORIGINS = CSRF_TRUSTED_ORIGINS
 
 CORS_ALLOW_CREDENTIALS = True
 
-
-# Password validation
-# https://docs.djangoproject.com/en/6.1/ref/settings/#auth-password-validators
 
 PASSWORD_VALIDATION = 'django.contrib.auth.password_validation'
 
@@ -198,9 +176,6 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-# Internationalization
-# https://docs.djangoproject.com/en/6.1/topics/i18n/
-
 LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'UTC'
@@ -209,9 +184,6 @@ USE_I18N = True
 
 USE_TZ = True
 
-
-# Static & media files
-# https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'static'
@@ -228,9 +200,6 @@ STORAGES = {
     },
 }
 
-
-# Email
-# https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 
 PLACEHOLDER_EMAIL_HOSTS = ('', 'smtp.example.com')
 
@@ -268,8 +237,5 @@ DEFAULT_FROM_EMAIL = os.getenv(
     'DEFAULT_FROM_EMAIL', 'Videoflix <noreply@videoflix.local>'
 )
 
-
-# Frontend
-# Base URL used for links in activation and password reset emails.
 
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://127.0.0.1:5500').rstrip('/')

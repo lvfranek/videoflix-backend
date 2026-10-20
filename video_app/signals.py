@@ -3,7 +3,7 @@ from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
 from .models import Video
-from .tasks import queue_video_processing
+from .tasks import queue_thumbnail_generation, queue_video_processing
 from .utils import delete_video_files, invalidate_video_list_cache
 
 
@@ -15,6 +15,17 @@ def process_uploaded_video(sender, instance, created, **kwargs):
     """
     if created:
         queue_video_processing(instance)
+
+
+@receiver(post_save, sender=Video)
+def restore_removed_thumbnail(sender, instance, created, **kwargs):
+    """
+    Generate a new thumbnail when the thumbnail of a ready video was
+    removed, so the frontend never shows a broken image.
+    """
+    is_ready = instance.status == Video.Status.READY
+    if not created and is_ready and not instance.thumbnail:
+        queue_thumbnail_generation(instance)
 
 
 @receiver(post_delete, sender=Video)

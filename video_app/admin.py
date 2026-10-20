@@ -31,3 +31,13 @@ class VideoAdmin(admin.ModelAdmin):
         if obj is None:
             return self.readonly_fields
         return self.readonly_fields + ('video_file',)
+
+    def save_model(self, request, obj, form, change):
+        """
+        Save the video and delete the file of a replaced or removed
+        thumbnail, so no unused images stay on disk.
+        """
+        previous_thumbnail = form.initial.get('thumbnail')
+        super().save_model(request, obj, form, change)
+        if change and 'thumbnail' in form.changed_data and previous_thumbnail:
+            previous_thumbnail.storage.delete(previous_thumbnail.name)

@@ -47,14 +47,14 @@ The backend of Videoflix, a small Netflix-style video streaming platform built a
 **Videos**
 - **Admin upload** — videos are uploaded with title, description and genre in the Django admin.
 - **Background conversion** — a Django signal queues an RQ job that converts every upload into HLS streams in 480p, 720p and 1080p.
-- **Automatic thumbnails** — a representative frame of the video becomes the thumbnail unless the admin uploads one.
+- **Automatic thumbnails** — a representative frame of the video becomes the thumbnail unless the admin uploads one; if the admin removes it later, a new one is generated. Replaced thumbnails are deleted from disk.
 - **Processing status** — `pending` → `processing` → `ready` / `failed`; only ready videos are listed.
 - **HLS streaming** — playlists and segments are delivered through authenticated API endpoints.
 - **Cleanup** — deleting a video removes its original file, thumbnail and all HLS files.
 
 **Under the hood**
 - **Redis cache** — the video list is cached and invalidated whenever a video is added, changed or deleted.
-- **Tests** — 85 automated tests for all endpoints, the background jobs and the media access rules.
+- **Tests** — 99 automated tests for all endpoints, the background jobs and the media access rules.
 
 ## Live Demo
 
@@ -202,7 +202,7 @@ flowchart LR
 
 ## Tests
 
-85 tests cover every endpoint (status codes and response bodies as documented), the cookie authentication, the email contents, the background jobs, the file cleanup, the cache and the media access rules. FFmpeg is mocked in most tests; two integration tests convert a tiny generated video with the real FFmpeg. Tests use a temporary media folder and an in-memory cache, so they never touch uploaded videos.
+99 tests cover every endpoint (status codes and response bodies as documented), the cookie authentication, the email contents, the background jobs, the admin thumbnail handling, the file cleanup, the cache and the media access rules. FFmpeg is mocked in most tests; two integration tests convert a tiny generated video with the real FFmpeg. Tests use a temporary media folder and an in-memory cache, so they never touch uploaded videos.
 
 ```bash
 docker compose exec web python manage.py test

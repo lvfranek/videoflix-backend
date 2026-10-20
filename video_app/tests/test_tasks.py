@@ -4,7 +4,7 @@ from unittest.mock import patch
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 from video_app.models import Video
-from video_app.tasks import process_video
+from video_app.tasks import generate_missing_thumbnail, process_video
 
 from .helpers import VideoTestCase, create_video
 
@@ -74,4 +74,28 @@ class ProcessVideoTests(VideoTestCase):
     def test_video_deleted_before_processing_is_skipped(self):
         with patch(FFMPEG_RUN) as run:
             process_video(9999)
+        run.assert_not_called()
+
+
+class GenerateMissingThumbnailTests(VideoTestCase):
+    """Tests for the job that replaces a removed thumbnail."""
+
+    def test_creates_thumbnail_from_the_video(self):
+        video = create_video()
+        with patch(FFMPEG_RUN) as run:
+            generate_missing_thumbnail(video.pk)
+        video.refresh_from_db()
+        self.assertEqual(video.thumbnail.name, f'thumbnails/{video.pk}.jpg')
+        run.assert_called_once()
+
+    def test_keeps_a_thumbnail_uploaded_in_the_meantime(self):
+        thumbnail = SimpleUploadedFile('own.jpg', b'jpg')
+        video = create_video(thumbnail=thumbnail)
+        with patch(FFMPEG_RUN) as run:
+            generate_missing_thumbnail(video.pk)
+        run.assert_not_called()
+
+    def test_deleted_video_is_skipped(self):
+        with patch(FFMPEG_RUN) as run:
+            generate_missing_thumbnail(9999)
         run.assert_not_called()
