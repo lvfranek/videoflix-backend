@@ -12,6 +12,8 @@ All environment-specific values are read from the .env file; see
   allows the origins from CSRF_TRUSTED_ORIGINS with credentials.
 - Emails are sent via SMTP once real server data is in .env;
   otherwise they are printed to the console.
+- Behind an HTTPS reverse proxy (e.g. Caddy) Django trusts the
+  X-Forwarded-Proto header, so absolute URLs use https.
 """
 
 import os
@@ -58,6 +60,8 @@ ALLOWED_HOSTS = env_list('ALLOWED_HOSTS', 'localhost,127.0.0.1')
 CSRF_TRUSTED_ORIGINS = env_list(
     'CSRF_TRUSTED_ORIGINS', 'http://localhost:5500,http://127.0.0.1:5500'
 )
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 
 INSTALLED_APPS = [
