@@ -58,7 +58,7 @@ The backend of Videoflix, a small Netflix-style video streaming platform built a
 
 ## Live Demo
 
-**[videoflix.franekkaminski.dev](https://videoflix.franekkaminski.dev)**: register with your email, confirm it via the activation link and start streaming.
+**[videoflix.franekkaminski.dev](https://videoflix.franekkaminski.dev)**: log in with the demo account `demo@franekkaminski.dev` / `Testpasswort123!`, or register with your own email and confirm it via the activation link.
 
 To run everything yourself, see [Installation](#️-installation).
 
