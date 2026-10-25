@@ -4,7 +4,7 @@ The backend of Videoflix, a small Netflix-style video streaming platform built a
 
 ![Videoflix dashboard](docs/videoflix-dashboard.jpg)
 
-*The Videoflix frontend (provided by the Developer Akademie) running on this backend.*
+> **This is the backend repository.** The user interface lives in **[lvfranek/videoflix-frontend](https://github.com/lvfranek/videoflix-frontend)** (React, TypeScript).
 
 ## Table of Contents
 
@@ -58,7 +58,9 @@ The backend of Videoflix, a small Netflix-style video streaming platform built a
 
 ## Live Demo
 
-There is no public demo: video conversion needs real server resources, so the project is meant to run locally with Docker (see [Installation](#️-installation)).
+**[videoflix.franekkaminski.dev](https://videoflix.franekkaminski.dev)**: register with your email, confirm it via the activation link and start streaming.
+
+To run everything yourself, see [Installation](#️-installation).
 
 ## ⚙️ Installation
 
